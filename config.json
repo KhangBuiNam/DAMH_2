@@ -1,0 +1,68 @@
+{
+  "bridge": {
+    "name": "Homebridge ESP",
+    "username": "0E:62:86:55:5E:B0",
+    "port": 51735,
+    "pin": "461-17-627"
+  },
+  "platforms": [
+    {
+      "platform": "config",
+      "name": "Config",
+      "port": 8581
+    },
+    {
+      "platform": "Cmd4",
+      "name": "Cmd4",
+      "interval": 5,
+      "timeout": 10000,
+      "stateChangeResponseTime": 3,
+      "accessories": [
+        {
+          "type": "Switch",
+          "displayName": "Máy Lạnh",
+          "on": false,
+          "state_cmd": "bash /var/lib/homebridge/ac_control.sh",
+          "polling": true,
+          "interval": 10
+        },
+        {
+          "type": "TemperatureSensor",
+          "displayName": "Nhiệt Độ Máy Lạnh",
+          "currentTemperature": 26,
+          "state_cmd": "bash /var/lib/homebridge/ac_control.sh",
+          "polling": true,
+          "interval": 10
+        },
+        {
+          "type": "Thermostat",
+          "displayName": "Điều Chỉnh Máy Lạnh",
+          "currentHeatingCoolingState": 2,
+          "targetHeatingCoolingState": 2,
+          "currentTemperature": 26,
+          "targetTemperature": 26,
+          "temperatureDisplayUnits": 0,
+          "state_cmd": "bash /var/lib/homebridge/ac_control.sh",
+          "polling": true,
+          "interval": 10
+        },
+        {
+          "type": "Switch",
+          "displayName": "Máy Lạnh Swing Dọc",
+          "on": false,
+          "state_cmd": "bash /var/lib/homebridge/ac_control.sh",
+          "polling": true,
+          "interval": 10
+        },
+        {
+          "type": "Switch",
+          "displayName": "Học Lệnh IR",
+          "on": false,
+          "state_cmd": "bash /var/lib/homebridge/ac_control.sh",
+          "polling": false
+        }
+      ]
+    }
+  ],
+  "accessories": []
+}
