@@ -30,8 +30,8 @@ IPAddress secondaryDNS(8, 8, 4, 4);
 
 // WiFi mode configuration
 const char* apSSID = "ESP_Config";
-const char* apPassword = "config123"; // Password for AP
-const int configButtonPin = 0; // GPIO0 to trigger configuration mode
+const char* apPassword = "config123";
+const int configButtonPin = 0;
 bool configMode = false;
 
 // IR pin configuration
@@ -46,10 +46,10 @@ IRsend irsend(kIrLed);
 decode_results results;
 
 // Store model information and raw IR code
-uint8_t savedProtocol = 0; // Store protocol type
-const int MAX_RAWBUF_SIZE = 600; // Sufficient for Daikin 280 bit (~584 samples)
-uint16_t rawData[MAX_RAWBUF_SIZE]; // Array to store raw code
-uint16_t rawLength = 0; // Length of raw code
+uint8_t savedProtocol = 0;
+const int MAX_RAWBUF_SIZE = 600;
+uint16_t rawData[MAX_RAWBUF_SIZE];
+uint16_t rawLength = 0;
 
 ESP8266WebServer server(80);
 
@@ -74,21 +74,20 @@ enum ACBrand {
   BRAND_MIDEA = 9,
   BRAND_TOSHIBA = 10,
   BRAND_WHIRLPOOL = 11,
-  BRAND_UNKNOWN = 12 // Cho mã thô
+  BRAND_UNKNOWN = 12
 };
 
 ACBrand currentBrand = BRAND_DAIKIN;
 
 // Initialize AC objects
-// Thêm các đối tượng Daikin
 IRDaikinESP daikinAC(kIrLed);         
-IRDaikin2 daikin2AC(kIrLed);          // Giao thức Daikin2
-IRDaikin128 daikin128AC(kIrLed);      // Giao thức 128-bit
-IRDaikin152 daikin152AC(kIrLed);      // Giao thức 152-bit
-IRDaikin64 daikin64AC(kIrLed);        // Giao thức 64-bit
-IRDaikin160 daikin160AC(kIrLed);      // Giao thức 160-bit
-IRDaikin176 daikin176AC(kIrLed);      // Giao thức 176-bit
-IRDaikin216 daikin216AC(kIrLed);      // Giao thức 216-bit
+IRDaikin2 daikin2AC(kIrLed);
+IRDaikin128 daikin128AC(kIrLed);
+IRDaikin152 daikin152AC(kIrLed);
+IRDaikin64 daikin64AC(kIrLed);
+IRDaikin160 daikin160AC(kIrLed);
+IRDaikin176 daikin176AC(kIrLed);
+IRDaikin216 daikin216AC(kIrLed);
 IRPanasonicAc panasonicAC(kIrLed);
 IRLgAc lgAC(kIrLed);
 IRSamsungAc samsungAC(kIrLed);
@@ -111,7 +110,20 @@ struct ACState {
   bool swingH = false;
 } currentState;
 
-// EEPROM support functions for IR and AC state
+// CORS headers function
+void setCrossOrigin() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Max-Age", "600");
+  server.sendHeader("Access-Control-Allow-Methods", "PUT,POST,GET,OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "*");
+}
+
+void handleOptions() {
+  setCrossOrigin();
+  server.send(204);
+}
+
+// EEPROM support functions
 void saveProtocol(uint8_t protocol) {
   EEPROM.write(0, protocol);
   EEPROM.commit();
@@ -216,6 +228,10 @@ String getBrandName(ACBrand brand) {
 // Apply settings to AC
 void applySettingsToAC() {
   Serial.println("Applying settings, Brand: " + getBrandName(currentBrand));
+  Serial.println("Power: " + String(currentState.power ? "ON" : "OFF"));
+  Serial.println("Mode: " + String(currentState.mode));
+  Serial.println("Temp: " + String(currentState.temp) + "°C");
+  
   switch (currentBrand) {
     case BRAND_DAIKIN:
       daikinAC.begin();
@@ -239,11 +255,11 @@ void applySettingsToAC() {
       break;
     case BRAND_DAIKIN128:
       daikin128AC.begin();
-      daikin128AC.setPowerToggle(currentState.power); // Sử dụng toggle thay vì setPower
+      daikin128AC.setPowerToggle(currentState.power);
       daikin128AC.setMode(currentState.mode);
       daikin128AC.setFan(currentState.fan);
       daikin128AC.setTemp(currentState.temp);
-      daikin128AC.setSwingVertical(currentState.swingV); // Không hỗ trợ setSwingHorizontal
+      daikin128AC.setSwingVertical(currentState.swingV);
       daikin128AC.send();
       break;
     case BRAND_DAIKIN152:
@@ -252,12 +268,12 @@ void applySettingsToAC() {
       daikin152AC.setMode(currentState.mode);
       daikin152AC.setFan(currentState.fan);
       daikin152AC.setTemp(currentState.temp);
-      daikin152AC.setSwingV(currentState.swingV); // Chỉ hỗ trợ swingV
+      daikin152AC.setSwingV(currentState.swingV);
       daikin152AC.send();
       break;
     case BRAND_DAIKIN64:
       daikin64AC.begin();
-      daikin64AC.setPowerToggle(currentState.power); // Toggle thay vì setPower
+      daikin64AC.setPowerToggle(currentState.power);
       daikin64AC.setMode(currentState.mode);
       daikin64AC.setFan(currentState.fan);
       daikin64AC.setTemp(currentState.temp);
@@ -270,7 +286,7 @@ void applySettingsToAC() {
       daikin160AC.setMode(currentState.mode);
       daikin160AC.setFan(currentState.fan);
       daikin160AC.setTemp(currentState.temp);
-      daikin160AC.setSwingVertical(currentState.swingV); // Không hỗ trợ setSwingHorizontal
+      daikin160AC.setSwingVertical(currentState.swingV);
       daikin160AC.send();
       break;
     case BRAND_DAIKIN176:
@@ -279,10 +295,8 @@ void applySettingsToAC() {
       daikin176AC.setMode(currentState.mode);
       daikin176AC.setFan(currentState.fan);
       daikin176AC.setTemp(currentState.temp);
-      // Không hỗ trợ setSwingVertical, bỏ qua hoặc kiểm tra nếu hỗ trợ setSwingH()
       daikin176AC.send();
       break;
-
     case BRAND_DAIKIN216:
       daikin216AC.begin();
       daikin216AC.setPower(currentState.power);
@@ -293,7 +307,6 @@ void applySettingsToAC() {
       daikin216AC.setSwingHorizontal(currentState.swingH);
       daikin216AC.send();
       break;
-
     case BRAND_PANASONIC:
       panasonicAC.begin();
       panasonicAC.setPower(currentState.power);
@@ -346,7 +359,7 @@ void applySettingsToAC() {
       greeAC.setMode(currentState.mode);
       greeAC.setFan(currentState.fan);
       greeAC.setTemp(currentState.temp);
-      greeAC.setSwingVertical(currentState.swingV, 0); // automatic = true, position = 0 (auto)
+      greeAC.setSwingVertical(currentState.swingV, 0);
       greeAC.send();
       break;
     case BRAND_HAIER:
@@ -396,105 +409,63 @@ void applySettingsToAC() {
     case BRAND_UNKNOWN:
       if (rawLength > 0) {
         Serial.println("Sending raw IR code, Length: " + String(rawLength));
-        irsend.sendRaw(rawData, rawLength, 38); // 38 kHz
+        irsend.sendRaw(rawData, rawLength, 38);
       } else {
         Serial.println("Error: No raw data available");
       }
       break;
   }
   saveACState();
+  Serial.println("IR signal sent successfully!");
 }
+
 // Endpoint /learn
 void handleLearn() {
+  setCrossOrigin();
+  Serial.println("Learning mode activated - waiting for IR signal...");
+  
   if (irrecv.decode(&results)) {
     savedProtocol = results.decode_type;
     saveProtocol(savedProtocol);
 
-    // Store raw IR code
     rawLength = results.rawlen;
     if (rawLength > 0 && rawLength <= MAX_RAWBUF_SIZE) {
       for (int i = 0; i < rawLength; i++) {
-        rawData[i] = results.rawbuf[i] * USECPERTICK; // Convert to microseconds
+        rawData[i] = results.rawbuf[i] * USECPERTICK;
       }
       saveRawData(rawData, rawLength);
     }
 
-    // Print detailed information
     String human = resultToHumanReadableBasic(&results);
-    Serial.println("IR signal details:");
+    Serial.println("IR signal learned!");
     Serial.println(human);
-    Serial.println(resultToSourceCode(&results));
-    Serial.print("Raw data: ");
-    Serial.println(resultToTimingInfo(&results));
     Serial.println("Protocol: " + String(typeToString(results.decode_type, false)));
     Serial.println("Bits: " + String(results.bits));
     Serial.println("Raw length: " + String(rawLength));
-    Serial.println("---------------------------------------------------");
 
-    // Update brand based on protocol
     switch (results.decode_type) {
-  case DAIKIN:
-    currentBrand = BRAND_DAIKIN;
-    break;
-  case DAIKIN2:
-    currentBrand = BRAND_DAIKIN2;
-    break;
-  case DAIKIN128:
-    currentBrand = BRAND_DAIKIN128;
-    break;
-  case DAIKIN152:
-    currentBrand = BRAND_DAIKIN152;
-    break;
-  case DAIKIN64:
-    currentBrand = BRAND_DAIKIN64;
-    break;
-  case DAIKIN160:
-    currentBrand = BRAND_DAIKIN160;
-    break;
-  case DAIKIN176:
-    currentBrand = BRAND_DAIKIN176;
-    break;
-  case DAIKIN216:
-    currentBrand = BRAND_DAIKIN216;
-    break;
-  case PANASONIC_AC: case PANASONIC_AC32:
-    currentBrand = BRAND_PANASONIC;
-    break;
-  case LG: case LG2:
-    currentBrand = BRAND_LG;
-    break;
-  case SAMSUNG_AC:
-    currentBrand = BRAND_SAMSUNG;
-    break;
-  case MITSUBISHI_AC: case MITSUBISHI112: case MITSUBISHI136:
-    currentBrand = BRAND_MITSUBISHI;
-    break;
-  case FUJITSU_AC:
-    currentBrand = BRAND_FUJITSU;
-    break;
-  case GREE:
-    currentBrand = BRAND_GREE;
-    break;
-  case HAIER_AC: case HAIER_AC_YRW02:
-    currentBrand = BRAND_HAIER;
-    break;
-  case HITACHI_AC: case HITACHI_AC1: case HITACHI_AC2: case HITACHI_AC3:
-  case HITACHI_AC344: case HITACHI_AC424: case HITACHI_AC264: case HITACHI_AC296:
-    currentBrand = BRAND_HITACHI;
-    break;
-  case MIDEA:
-    currentBrand = BRAND_MIDEA;
-    break;
-  case TOSHIBA_AC:
-    currentBrand = BRAND_TOSHIBA;
-    break;
-  case WHIRLPOOL_AC:
-    currentBrand = BRAND_WHIRLPOOL;
-    break;
-  default:
-    currentBrand = BRAND_UNKNOWN;
-    break;
-}
+      case DAIKIN: currentBrand = BRAND_DAIKIN; break;
+      case DAIKIN2: currentBrand = BRAND_DAIKIN2; break;
+      case DAIKIN128: currentBrand = BRAND_DAIKIN128; break;
+      case DAIKIN152: currentBrand = BRAND_DAIKIN152; break;
+      case DAIKIN64: currentBrand = BRAND_DAIKIN64; break;
+      case DAIKIN160: currentBrand = BRAND_DAIKIN160; break;
+      case DAIKIN176: currentBrand = BRAND_DAIKIN176; break;
+      case DAIKIN216: currentBrand = BRAND_DAIKIN216; break;
+      case PANASONIC_AC: case PANASONIC_AC32: currentBrand = BRAND_PANASONIC; break;
+      case LG: case LG2: currentBrand = BRAND_LG; break;
+      case SAMSUNG_AC: currentBrand = BRAND_SAMSUNG; break;
+      case MITSUBISHI_AC: case MITSUBISHI112: case MITSUBISHI136: currentBrand = BRAND_MITSUBISHI; break;
+      case FUJITSU_AC: currentBrand = BRAND_FUJITSU; break;
+      case GREE: currentBrand = BRAND_GREE; break;
+      case HAIER_AC: case HAIER_AC_YRW02: currentBrand = BRAND_HAIER; break;
+      case HITACHI_AC: case HITACHI_AC1: case HITACHI_AC2: case HITACHI_AC3:
+      case HITACHI_AC344: case HITACHI_AC424: case HITACHI_AC264: case HITACHI_AC296: currentBrand = BRAND_HITACHI; break;
+      case MIDEA: currentBrand = BRAND_MIDEA; break;
+      case TOSHIBA_AC: currentBrand = BRAND_TOSHIBA; break;
+      case WHIRLPOOL_AC: currentBrand = BRAND_WHIRLPOOL; break;
+      default: currentBrand = BRAND_UNKNOWN; break;
+    }
     saveACState();
 
     irrecv.resume();
@@ -504,12 +475,13 @@ void handleLearn() {
       "\",\"bits\":" + String(results.bits) + ",\"raw_length\":" + String(rawLength) + 
       ",\"brand\":\"" + getBrandName(currentBrand) + "\"}");
   } else {
-    server.send(200, "application/json", "{\"status\":\"waiting for signal from remote\"}");
+    server.send(200, "application/json", "{\"status\":\"waiting\"}");
   }
 }
 
 // Endpoint /brands
 void handleBrands() {
+  setCrossOrigin();
   StaticJsonDocument<512> doc;
   JsonArray brands = doc.createNestedArray("supported_brands");
   brands.add("daikin");
@@ -536,6 +508,7 @@ void handleBrands() {
 
 // Endpoint /brand
 void handleSetBrand() {
+  setCrossOrigin();
   if (!server.hasArg("plain")) {
     server.send(400, "application/json", "{\"error\":\"No data provided\"}");
     return;
@@ -571,7 +544,7 @@ void handleSetBrand() {
       case BRAND_MIDEA: mideaAC.begin(); break;
       case BRAND_TOSHIBA: toshibaAC.begin(); break;
       case BRAND_WHIRLPOOL: whirlpoolAC.begin(); break;
-      case BRAND_UNKNOWN: break; // No initialization needed for raw code
+      case BRAND_UNKNOWN: break;
     }
     applySettingsToAC();
   }
@@ -588,6 +561,7 @@ void handleSetBrand() {
 
 // Endpoint /status
 void handleStatus() {
+  setCrossOrigin();
   StaticJsonDocument<512> doc;
   doc["brand"] = getBrandName(currentBrand);
   doc["protocol"] = typeToString((decode_type_t)savedProtocol, false);
@@ -604,29 +578,77 @@ void handleStatus() {
   String response;
   serializeJson(doc, response);
   server.send(200, "application/json", response);
+  
+  Serial.println("Status requested - Power: " + String(currentState.power ? "ON" : "OFF") + 
+                 ", Temp: " + String(currentState.temp) + "°C");
 }
 
-// Endpoint /control
+// Individual property endpoints for Homebridge
+void handleGetTemp() {
+  setCrossOrigin();
+  Serial.println("GET /temp - Returning: " + String(currentState.temp));
+  server.send(200, "text/plain", String(currentState.temp));
+}
+
+void handleGetMode() {
+  setCrossOrigin();
+  Serial.println("GET /mode - Returning: " + String(currentState.mode));
+  server.send(200, "text/plain", String(currentState.mode));
+}
+
+void handleGetPower() {
+  setCrossOrigin();
+  String powerState = currentState.power ? "on" : "off";
+  Serial.println("GET /power - Returning: " + powerState);
+  server.send(200, "text/plain", powerState);
+}
+
+void handleGetFan() {
+  setCrossOrigin();
+  Serial.println("GET /fan - Returning: " + String(currentState.fan));
+  server.send(200, "text/plain", String(currentState.fan));
+}
+
+void handleGetSwingV() {
+  setCrossOrigin();
+  server.send(200, "text/plain", currentState.swingV ? "true" : "false");
+}
+
+void handleGetSwingH() {
+  setCrossOrigin();
+  server.send(200, "text/plain", currentState.swingH ? "true" : "false");
+}
+
+// Endpoint /control - UPDATED for Homebridge compatibility with CORS
 void handleControl() {
+  setCrossOrigin();
+  
+  Serial.println("POST /control received");
+  
   if (!server.hasArg("plain")) {
+    Serial.println("Error: No data provided");
     server.send(400, "application/json", "{\"error\":\"No data provided\"}");
     return;
   }
 
+  String body = server.arg("plain");
+  Serial.println("Request body: " + body);
+
   StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+  DeserializationError error = deserializeJson(doc, body);
   if (error) {
+    Serial.println("Error: Invalid JSON - " + String(error.c_str()));
     server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
     return;
   }
 
-  // Update brand only if present in JSON, otherwise keep currentBrand
-  bool brandSpecified = false;
+  // Update brand if specified
   if (doc.containsKey("brand")) {
     String brandName = doc["brand"].as<String>();
     ACBrand newBrand = getBrandFromString(brandName);
     if (newBrand != currentBrand) {
       currentBrand = newBrand;
+      Serial.println("Brand changed to: " + getBrandName(currentBrand));
       switch (currentBrand) {
         case BRAND_DAIKIN: daikinAC.begin(); break;
         case BRAND_PANASONIC: panasonicAC.begin(); break;
@@ -643,56 +665,86 @@ void handleControl() {
         case BRAND_UNKNOWN: break;
       }
     }
-    brandSpecified = true;
   }
 
-  // Update state
+  // Update state based on JSON parameters
   if (doc.containsKey("power")) {
     String pwr = doc["power"].as<String>();
     currentState.power = (pwr == "on");
+    Serial.println("Power set to: " + String(currentState.power ? "ON" : "OFF"));
   }
   if (doc.containsKey("mode")) {
     int mode = doc["mode"];
-    if (mode >= 0 && mode <= 4) currentState.mode = mode;
+    if (mode >= 0 && mode <= 4) {
+      currentState.mode = mode;
+      Serial.println("Mode set to: " + String(mode));
+    }
   }
   if (doc.containsKey("fan")) {
     int fan = doc["fan"];
-    if (fan >= 0 && fan <= 5) currentState.fan = fan;
+    if (fan >= 0 && fan <= 5) {
+      currentState.fan = fan;
+      Serial.println("Fan set to: " + String(fan));
+    }
   }
   if (doc.containsKey("temp")) {
     int temp = doc["temp"];
-    if (temp >= 16 && temp <= 30) currentState.temp = temp;
+    if (temp >= 16 && temp <= 32) {
+      currentState.temp = temp;
+      Serial.println("Temperature set to: " + String(temp) + "°C");
+    }
   }
   if (doc.containsKey("swing_v")) {
     currentState.swingV = doc["swing_v"];
+    Serial.println("Swing V set to: " + String(currentState.swingV));
   }
   if (doc.containsKey("swing_h")) {
     currentState.swingH = doc["swing_h"];
+    Serial.println("Swing H set to: " + String(currentState.swingH));
   }
 
+  // Apply settings to AC
   applySettingsToAC();
 
-  StaticJsonDocument<512> response;
-  response["status"] = "ok";
-  response["brand"] = getBrandName(currentBrand);
-  response["power"] = currentState.power ? "on" : "off";
-  response["mode"] = currentState.mode;
-  response["fan"] = currentState.fan;
-  response["temp"] = currentState.temp;
-  response["swing_v"] = currentState.swingV;
-  response["swing_h"] = currentState.swingH;
-  response["message"] = brandSpecified ? "Command executed successfully" : "Command executed successfully with learned brand (" + getBrandName(currentBrand) + ")";
+  // Return response based on what was requested
+  String lastUpdated = "";
+  if (doc.containsKey("temp")) lastUpdated = "temp";
+  else if (doc.containsKey("mode")) lastUpdated = "mode";
+  else if (doc.containsKey("power")) lastUpdated = "power";
 
-  String responseStr;
-  serializeJson(response, responseStr);
-  server.send(200, "application/json", responseStr);
+  // Send simple text response for single property updates (Homebridge compatibility)
+  if (lastUpdated == "temp") {
+    server.send(200, "text/plain", String(currentState.temp));
+  } else if (lastUpdated == "mode") {
+    server.send(200, "text/plain", String(currentState.mode));
+  } else if (lastUpdated == "power") {
+    server.send(200, "text/plain", currentState.power ? "on" : "off");
+  } else {
+    // Full JSON response for multiple parameters or unknown requests
+    StaticJsonDocument<512> response;
+    response["status"] = "ok";
+    response["brand"] = getBrandName(currentBrand);
+    response["power"] = currentState.power ? "on" : "off";
+    response["mode"] = currentState.mode;
+    response["fan"] = currentState.fan;
+    response["temp"] = currentState.temp;
+    response["swing_v"] = currentState.swingV;
+    response["swing_h"] = currentState.swingH;
+
+    String responseStr;
+    serializeJson(response, responseStr);
+    server.send(200, "application/json", responseStr);
+  }
+  
+  Serial.println("Control command executed successfully!");
 }
 
 // Endpoint /info
 void handleInfo() {
+  setCrossOrigin();
   StaticJsonDocument<1024> doc;
   doc["current_brand"] = getBrandName(currentBrand);
-  doc["firmware_version"] = "1.0";
+  doc["firmware_version"] = "2.1";
   doc["supported_brands_count"] = 13;
   
   JsonObject modes = doc.createNestedObject("modes");
@@ -712,7 +764,7 @@ void handleInfo() {
   
   JsonObject temp = doc.createNestedObject("temperature");
   temp["min"] = 16;
-  temp["max"] = 30;
+  temp["max"] = 32;
   temp["unit"] = "°C";
   
   JsonObject swing = doc.createNestedObject("swing");
@@ -726,6 +778,9 @@ void handleInfo() {
 
 // Endpoint /test
 void handleTest() {
+  setCrossOrigin();
+  Serial.println("Test signal requested");
+  
   StaticJsonDocument<256> response;
   response["status"] = "ok";
   response["brand"] = getBrandName(currentBrand);
@@ -745,14 +800,13 @@ void enterWiFiConfigMode() {
   WiFi.disconnect();
   
   WiFiManager wm;
-  wm.setConfigPortalTimeout(180); // 3-minute timeout
+  wm.setConfigPortalTimeout(180);
   if (!wm.startConfigPortal(apSSID, apPassword)) {
     Serial.println("WiFi connection failed. Restarting...");
     delay(3000);
     ESP.restart();
   }
   
-  // Configure static IP after WiFi connection
   if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
     Serial.println("Unable to configure static IP");
   }
@@ -765,17 +819,15 @@ void enterWiFiConfigMode() {
 void setup() {
   Serial.begin(115200);
   delay(100);
-  EEPROM.begin(1210); // Size for IR and AC state
+  EEPROM.begin(1210);
 
-  Serial.println("\n=== Multi-brand AC controller starting ===");
+  Serial.println("\n=== Multi-brand AC controller v2.1 (Homebridge + CORS) ===");
 
-  // Check configuration button
   pinMode(configButtonPin, INPUT_PULLUP);
-  // Always enter configuration mode on startup or when button is pressed
+  
   if (digitalRead(configButtonPin) == LOW) {
     enterWiFiConfigMode();
   } else {
-    // Try to connect to WiFi with saved credentials
     WiFiManager wm;
     if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
       Serial.println("Unable to configure static IP");
@@ -785,50 +837,109 @@ void setup() {
       Serial.println("WiFi connection failed. Entering configuration mode...");
       enterWiFiConfigMode();
     } else {
-      Serial.println("WiFi connected:");
-      Serial.println(WiFi.localIP());
+      Serial.println("WiFi connected successfully!");
+      Serial.println("IP Address: " + WiFi.localIP().toString());
+      Serial.println("MAC Address: " + WiFi.macAddress());
 
-      // Initialize IR
       irrecv.enableIRIn();
       irsend.begin();
 
-      // Initialize default AC
       daikinAC.begin();
       savedProtocol = loadProtocol();
       rawLength = loadRawData(rawData);
       loadACState();
 
-      // Define API routes
+      Serial.println("Current state loaded from EEPROM:");
+      Serial.println("- Brand: " + getBrandName(currentBrand));
+      Serial.println("- Power: " + String(currentState.power ? "ON" : "OFF"));
+      Serial.println("- Mode: " + String(currentState.mode));
+      Serial.println("- Temp: " + String(currentState.temp) + "°C");
+
+      // Define API routes with CORS support
       server.on("/", HTTP_GET, []() {
-        String html = "<html><body><h1>Multi-brand AC Controller</h1>";
-        html += "<p>Current brand: " + getBrandName(currentBrand) + "</p>";
-        html += "<p>Available APIs:</p>";
+        setCrossOrigin();
+        String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+        html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+        html += "<title>AC Controller</title></head><body>";
+        html += "<h1>Multi-brand AC Controller v2.1</h1>";
+        html += "<h2>Current Status</h2>";
+        html += "<ul>";
+        html += "<li><b>Brand:</b> " + getBrandName(currentBrand) + "</li>";
+        html += "<li><b>Temperature:</b> " + String(currentState.temp) + "°C</li>";
+        html += "<li><b>Mode:</b> " + String(currentState.mode) + "</li>";
+        html += "<li><b>Power:</b> " + String(currentState.power ? "ON" : "OFF") + "</li>";
+        html += "<li><b>IP:</b> " + WiFi.localIP().toString() + "</li>";
+        html += "</ul>";
+        html += "<h2>Available APIs:</h2>";
         html += "<ul>";
         html += "<li>GET /learn - Learn IR signal</li>";
         html += "<li>GET /brands - List supported brands</li>";
         html += "<li>POST /brand - Set AC brand</li>";
-        html += "<li>GET /status - Get current status</li>";
-        html += "<li>POST /control - Control AC</li>";
+        html += "<li>GET /status - Get current status (JSON)</li>";
+        html += "<li>GET /temp - Get temperature</li>";
+        html += "<li>GET /mode - Get mode</li>";
+        html += "<li>GET /power - Get power state</li>";
+        html += "<li>GET /fan - Get fan speed</li>";
+        html += "<li>GET /swing_v - Get vertical swing</li>";
+        html += "<li>GET /swing_h - Get horizontal swing</li>";
+        html += "<li>POST /control - Control AC (JSON)</li>";
         html += "<li>GET /info - Get detailed information</li>";
         html += "<li>POST /test - Test IR signal</li>";
-        html += "</ul></body></html>";
+        html += "</ul>";
+        html += "<p><small>CORS enabled for all endpoints</small></p>";
+        html += "</body></html>";
         server.send(200, "text/html", html);
       });
       
+      // Register all endpoints with OPTIONS support for CORS
+      server.on("/learn", HTTP_OPTIONS, handleOptions);
       server.on("/learn", HTTP_GET, handleLearn);
+      
+      server.on("/brands", HTTP_OPTIONS, handleOptions);
       server.on("/brands", HTTP_GET, handleBrands);
+      
+      server.on("/brand", HTTP_OPTIONS, handleOptions);
       server.on("/brand", HTTP_POST, handleSetBrand);
+      
+      server.on("/status", HTTP_OPTIONS, handleOptions);
       server.on("/status", HTTP_GET, handleStatus);
+      
+      server.on("/temp", HTTP_OPTIONS, handleOptions);
+      server.on("/temp", HTTP_GET, handleGetTemp);
+      
+      server.on("/mode", HTTP_OPTIONS, handleOptions);
+      server.on("/mode", HTTP_GET, handleGetMode);
+      
+      server.on("/power", HTTP_OPTIONS, handleOptions);
+      server.on("/power", HTTP_GET, handleGetPower);
+      
+      server.on("/fan", HTTP_OPTIONS, handleOptions);
+      server.on("/fan", HTTP_GET, handleGetFan);
+      
+      server.on("/swing_v", HTTP_OPTIONS, handleOptions);
+      server.on("/swing_v", HTTP_GET, handleGetSwingV);
+      
+      server.on("/swing_h", HTTP_OPTIONS, handleOptions);
+      server.on("/swing_h", HTTP_GET, handleGetSwingH);
+      
+      server.on("/control", HTTP_OPTIONS, handleOptions);
       server.on("/control", HTTP_POST, handleControl);
+      
+      server.on("/info", HTTP_OPTIONS, handleOptions);
       server.on("/info", HTTP_GET, handleInfo);
+      
+      server.on("/test", HTTP_OPTIONS, handleOptions);
       server.on("/test", HTTP_POST, handleTest);
 
       server.enableCORS(true);
       server.begin();
-      Serial.println("=== HTTP API for multi-brand AC controller ready! ===");
-      Serial.println("Supported brands: Daikin, Panasonic, LG, Samsung, Mitsubishi, Fujitsu, Gree, Haier, Hitachi, Midea, Toshiba, Whirlpool, Unknown");
+      
+      Serial.println("\n=== HTTP API ready! ===");
+      Serial.println("All endpoints support CORS");
+      Serial.println("Supported brands: Daikin (all variants), Panasonic, LG, Samsung, Mitsubishi, Fujitsu, Gree, Haier, Hitachi, Midea, Toshiba, Whirlpool, Unknown");
       Serial.println("Web interface: http://" + WiFi.localIP().toString());
-      Serial.println("=======================================");
+      Serial.println("Homebridge endpoints: /temp, /mode, /power, /control");
+      Serial.println("=======================================\n");
     }
   }
 }
@@ -836,16 +947,16 @@ void setup() {
 void loop() {
   server.handleClient();
   
-  // Heartbeat every 30s (only in normal mode)
   if (!configMode) {
     static unsigned long lastHeartbeat = 0;
     if (millis() - lastHeartbeat > 30000) {
-      Serial.println("AC controller running - Brand: " + getBrandName(currentBrand));
+      Serial.println("[Heartbeat] AC controller running - Brand: " + getBrandName(currentBrand) + 
+                     " | Temp: " + String(currentState.temp) + "°C | Power: " + 
+                     (currentState.power ? "ON" : "OFF") + " | Uptime: " + String(millis()/1000) + "s");
       lastHeartbeat = millis();
     }
   }
 
-  // Check configuration button press in loop
   if (digitalRead(configButtonPin) == LOW && !configMode) {
     Serial.println("Configuration button pressed, entering WiFi configuration mode");
     enterWiFiConfigMode();
